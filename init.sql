@@ -1,4 +1,6 @@
-create database users;
+create database metropolia_nettisivu;
+
+use metropolia_nettisivu;
 
 create table users (
     id int primary key,
