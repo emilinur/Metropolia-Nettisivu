@@ -2,6 +2,7 @@ from flask import Flask
 from flask import request
 from flask import jsonify
 import mysql.connector
+from flask import render_template
 
 app = Flask(__name__)
 
@@ -190,46 +191,12 @@ class Opettaja: #Emilia
     def opettajan_kurssit(self):
         return self.opettajan_kurssit
 
-#Anastasiia
-class Opo:
-	
-	def jatkoopinto(self, opintopisteet: opintopisteet):
-		if opintopisteet>=60:
-			return True
-		else:
-			return False
 
-#Testaus 
 
-#Kurssit
-matematiikka = Kurssi("Matematiikka", 5)
-fysiikka = Kurssi("Fysiikka", 5)
-englanti = Kurssi("Englanti", 10)
+@app.route("/")
+def home():
+    return render_template("index.html")
 
-#kurssi tarjottimen luominen --> opon homma
-tarjotin = Tarjotin("Tarjotin")
-tarjotin.lisaa(matematiikka)
-tarjotin.lisaa(fysiikka)
-tarjotin.lisaa(englanti)
-
-#Luodaan opiskelijat ja opettajat
-opiskelija = Opiskelija("Matti", tarjotin)
-
-opettaja1 = Opettaja("Pekka")
-opettaja2 = Opettaja("Milla")
-
-#Opiskelija class metodin testaus
-opiskelija.ilmoittaudu(matematiikka)
-opiskelija.ilmoittaudu(fysiikka)
-opiskelija.suorita(matematiikka, 4)
-opiskelija.suorita(fysiikka, 5)
-print(opiskelija)
-
-#Opettaja class metodin testaus
-opettaja1.lisaa_kurssi(matematiikka)
-opettaja1.lisaa_kurssi(fysiikka)
-opettaja2.lisaa_kurssi(englanti)
-print(opettaja1)
-print(opettaja2)
-print("Opettajan kurssit:", opettaja1.opettajan_kurssit)
-print("Opettajan kurssit:", opettaja2.opettajan_kurssit)
+@app.route("/test")
+def home1():
+    return render_template("register.html")
