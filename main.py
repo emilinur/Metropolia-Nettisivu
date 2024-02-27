@@ -10,19 +10,76 @@ app = Flask(__name__)
 db_config = {
     'host': 'localhost',
     'user': 'root',
-    'password': 'test',
-    'database': 'test'
+    'password': '',
+    'database': 'metropolia_nettisivu'
 }
 
 class User:
-    def __init__(self, username, password, user_type):
-        if not username or not password or not user_type:
-            raise TypeError("Please specify username, password and user_type")
+    def __init__(self, username=None, password=None, email=None, user_type=None):
         self.username = username
         self.password = password
+        self.email = email
         self.user_type = user_type
+	
+    def get(self):
+        conn = mysql.connector.connect(**db_config)
 
-    def save(self):
+        # Create a cursor object to interact with the database
+        cursor = conn.cursor()
+
+        # Insert the user into the 'users' table
+        insert_query = "SELECT * FROM users WHERE email=%s;"
+        user_data = (self.email)
+
+        try:
+            user_result = cursor.fetchone(insert_query, user_data)
+            conn.commit()
+            cursor.close()
+            conn.close()
+            
+            if user_result:
+				# Process the user data
+                user_id = user_result[0]
+                username = user_result[1]
+                password = user_result[2]
+                user_email = user_result[3]
+                user_type = user_result[4]
+                return {"message":"Here is the user","user":{"id":f"{user_id}","username":f"{username}", "password":f"{password}","email":f"{user_email}","type":f"{user_type}"}}
+            else:
+                return {"message": "error retrieving user"}
+        except mysql.connector.Error as err:
+            raise TypeError("Error saving user to DB")
+        
+    def login(self):
+        conn = mysql.connector.connect(**db_config)
+
+        # Create a cursor object to interact with the database
+        cursor = conn.cursor()
+
+        # Insert the user into the 'users' table
+        insert_query = "SELECT * FROM users WHERE email=%s and password=%s;"
+        user_data = (self.email, self.password)
+
+        try:
+            user_result = cursor.fetchone(insert_query, user_data)
+            conn.commit()
+            cursor.close()
+            conn.close()
+            
+            if user_result:
+				# Process the user data
+                user_id = user_result[0]
+                username = user_result[1]
+                password = user_result[2]
+                user_email = user_result[3]
+                user_type = user_result[4]
+                return {"message":"Here is the user","user":{"id":f"{user_id}","username":f"{username}", "password":f"{password}","email":f"{user_email}","type":f"{user_type}"}}
+            else:
+                raise TypeError("error retrieving user")
+        except mysql.connector.Error as err:
+            raise TypeError("Error saving user to DB")  
+
+    def create(self):
         # ESTABLISH CONNECTION TO DATABASE
         # Create a connection to the database
         conn = mysql.connector.connect(**db_config)
@@ -31,8 +88,8 @@ class User:
         cursor = conn.cursor()
 
         # Insert the user into the 'users' table
-        insert_query = "INSERT INTO users (username, password, user_type) VALUES (%s, %s, %s)"
-        user_data = (self.username, self.password, self.user_type)
+        insert_query = "INSERT INTO users (username, password, email, user_type) VALUES (%s, %s, %s)"
+        user_data = (self.username, self.password, self.email, self.user_type)
 
         try:
             cursor.execute(insert_query, user_data)
@@ -64,6 +121,23 @@ class User:
         except mysql.connector.Error as err:
             raise TypeError("Error deleting user from DB")
 
+@app.route("/getUser", methods = ["GET"])
+def getUser():
+    json_data = request.json
+    
+    if not json_data:
+        return jsonify({"error": "Invalid JSON data"}), 400
+
+    # Get user details from the JSON data
+    email = json_data.get('email') # email = "user123@gmail.com"
+    
+    user = User(email)
+
+    try:
+        response = user.get()
+        return jsonify(response)
+    except TypeError as err:
+        return jsonify('{"error":"error happened processing your request"}')
 
 @app.route("/createUser", methods = ["POST"])
 def createCourse():
@@ -77,12 +151,13 @@ def createCourse():
     # Get user details from the JSON data
     username = json_data.get('username') # username = "user123"
     password = json_data.get('password') # password = "password123"
+    email = json_data.get('email') # email = "at@at.com"
     user_type = json_data.get('user_type') # user_type = "student"
 
-    user = User(username, password, user_type)
+    user = User(username, password, email, user_type)
 
     try:
-        response = user.save()
+        response = user.create()
         return jsonify(response)
     except TypeError as err:
         return jsonify('{"error":"error happened processing your request"}')
