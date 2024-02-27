@@ -1,6 +1,7 @@
 from flask import Flask
 from flask import request
 from flask import jsonify
+import json
 import mysql.connector
 from flask import render_template
 
@@ -15,12 +16,13 @@ db_config = {
 }
 
 class User:
-    def __init__(self, username=None, password=None, email=None, user_type=None):
+    def __init__(self, username=None, password=None, email=None, courses=None, user_type=None) -> None:
         self.username = username
         self.password = password
         self.email = email
+        self.courses = courses
         self.user_type = user_type
-	
+    
     def get(self):
         conn = mysql.connector.connect(**db_config)
 
@@ -38,12 +40,13 @@ class User:
             conn.close()
             
             if user_result:
-				# Process the user data
+                # Process the user data
                 user_id = user_result[0]
                 username = user_result[1]
-                password = user_result[2]
                 user_email = user_result[3]
-                user_type = user_result[4]
+                password = user_result[2]
+                user_courses = user_courses[4]
+                user_type = user_result[5]
                 return {"message":"Here is the user","user":{"id":f"{user_id}","username":f"{username}", "password":f"{password}","email":f"{user_email}","type":f"{user_type}"}}
             else:
                 return {"message": "error retrieving user"}
@@ -67,7 +70,7 @@ class User:
             conn.close()
             
             if user_result:
-				# Process the user data
+                # Process the user data
                 user_id = user_result[0]
                 username = user_result[1]
                 password = user_result[2]
@@ -99,6 +102,27 @@ class User:
             return {"message": "User inserted successfully"}
         except mysql.connector.Error as err:
             raise TypeError("Error saving user to DB")
+        
+    def enroll(self, newCourse):
+        # ESTABLISH CONNECTION TO DATABASE
+        # Create a connection to the database
+        conn = mysql.connector.connect(**db_config)
+
+        # Create a cursor object to interact with the database
+        cursor = conn.cursor()
+
+        # Insert the user into the 'users' table
+        update_query = "UPDATE users SET couses=CONCAT(courses, %s) WHERE email=%s"
+        user_data = (newCourse, self.email)
+
+        try:
+            cursor.execute(update_query, user_data)
+            conn.commit()
+            cursor.close()
+            conn.close()
+            return {"message": "Course added successfully"}
+        except mysql.connector.Error as err:
+            raise TypeError("Error connecting to DB")
     
     def delete(self):
         # ESTABLISH CONNECTION TO DATABASE
@@ -120,6 +144,58 @@ class User:
             return {"message": "User deleted successfully"}
         except mysql.connector.Error as err:
             raise TypeError("Error deleting user from DB")
+
+class Course:
+    def __init__(self, name=None, credits=None, teacherEmail=None) -> None:
+        self.name = name
+        self.credits = credits
+        self.teacherEmail = teacherEmail
+    
+    def getAll(self):
+        conn = mysql.connector.connect(**db_config)
+
+        # Create a cursor object to interact with the database
+        cursor = conn.cursor()
+
+        # Insert the user into the 'users' table
+        fetch_query = "SELECT * FROM courses;"
+
+        try:
+            cursor.execute(fetch_query)
+            courses_result = cursor.fetchall()
+            conn.commit()
+            cursor.close()
+            conn.close()
+            
+            if courses_result:
+                # Process the user data
+                rs = json.dumps(dict(courses_result))
+                return {"message":"Here are the courses","courses":rs}
+            else:
+                return {"message": "error retrieving courses"}
+        except mysql.connector.Error as err:
+            raise TypeError("Error connecting to DB")
+        
+    def create(self)->None:
+        # ESTABLISH CONNECTION TO DATABASE
+        # Create a connection to the database
+        conn = mysql.connector.connect(**db_config)
+
+        # Create a cursor object to interact with the database
+        cursor = conn.cursor()
+
+        # Insert the user into the 'users' table
+        insert_query = "INSERT INTO courses (name, credits, teacherEmail) VALUES (%s, %s, %s)"
+        course_data = (self.name, self.credits, self.teacherEmail)
+
+        try:
+            cursor.execute(insert_query, course_data)
+            conn.commit()
+            cursor.close()
+            conn.close()
+            return {"message": "Course created successfully"}
+        except mysql.connector.Error as err:
+            raise TypeError("Error saving course to DB")
 
 @app.route("/getUser", methods = ["GET"])
 def getUser():
@@ -161,7 +237,28 @@ def createCourse():
         return jsonify(response)
     except TypeError as err:
         return jsonify('{"error":"error happened processing your request"}')
+    
+@app.route("/createcourse", methods = ["POST"])
+def createCourse():
+    # Get JSON data from the request
+    json_data = request.json
 
+    # REQUEST VALIDATION, if not JSON been sent, return 400
+    if not json_data:
+        return jsonify({"error": "Invalid JSON data"}), 400
+
+    # Get user details from the JSON data
+    name = json_data.get('name') # name = "course123"
+    credits = json_data.get('credits') # credits = "5"
+    teacherEmail = json_data.get('teacherEmail') # teacherEmail = "t@t.t"
+
+    course = Course(name, credits, teacherEmail)
+
+    try:
+        response = course.create()
+        return jsonify(response)
+    except TypeError as err:
+        return jsonify('{"error":"error happened processing your request"}')
 
 @app.route("/deleteUser", methods = ["DELETE"])
 def deleteCourse():
