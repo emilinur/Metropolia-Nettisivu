@@ -267,11 +267,18 @@ class Opettaja: #Emilia
         return self.opettajan_kurssit
 
 
-
-@app.route("/")
+@app.route("/1")
 def home():
     return render_template("index.html")
 
-@app.route("/test")
+@app.route("/2")
 def home1():
     return render_template("register.html")
+
+@app.route("/3")
+def home2():
+    return render_template("student.html")
+
+@app.route("/4")
+def home3():
+    return render_template("teacher.html")
